@@ -88,9 +88,28 @@ General steps on MikroTik:
 
 ---
 
-## Build & Publish (Docker)
+## Credits / Acknowledgements
 
-### Local build (multi-arch recommended)
+This project is inspired by and builds upon the original concept from:
+
+- https://github.com/degritsenko/openconnect-mikrotik
+
+The original repository provided a solid base for running OpenConnect on MikroTik RouterOS containers.  
+This variant focuses on a more “hands-off” operational setup for daily use (gateway + routing + resiliency + logging).
+
+Huge thanks to the original author for publishing the base implementation.
+
+---
+
+## Image / Project Layout
+
+Typical repo layout:
+
+```text
+.
+├─ Dockerfile
+├─ run.sh
+└─ README.md
 
 ```bash
 docker login
