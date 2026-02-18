@@ -25,39 +25,42 @@ dbg() { [ "$LOG_LEVEL" = "debug" ] && echo "$(ts) [DEBUG] $*" >&2 || true; }
 warn(){ echo "$(ts) [WARN]  $*" >&2; }
 err() { echo "$(ts) [ERROR] $*" >&2; }
 
-# ---------- PID lock (stale-safe + handles PID reuse like pid=2) ----------
-LOCKFILE="/tmp/ocvpn.lock"
+# ---------- atomic lock (no recursion, stale-safe) ----------
+LOCKDIR="/tmp/ocvpn.lock.d"
+LOCKPID="$LOCKDIR/pid"
 
-if [ -f "$LOCKFILE" ]; then
-  oldpid="$(cat "$LOCKFILE" 2>/dev/null || true)"
+acquire_lock() {
+  # try a few times in case of race during startup
+  for _ in 1 2 3; do
+    if mkdir "$LOCKDIR" 2>/dev/null; then
+      echo "$$" > "$LOCKPID" 2>/dev/null || true
+      return 0
+    fi
 
-  # اگر PID قبلی دقیقاً PID همین اجراست (PID reuse بعد از restart)، لاک stale حساب میشه
-  if [ -n "${oldpid:-}" ] && [ "$oldpid" = "$$" ]; then
-    echo "$(ts) [WARN]  Lock pid equals current pid ($$). Removing stale lock." >&2
-    rm -f "$LOCKFILE" 2>/dev/null || true
+    oldpid="$(cat "$LOCKPID" 2>/dev/null || true)"
+    if [ -n "${oldpid:-}" ] && [ -d "/proc/$oldpid" ]; then
+      echo "$(date '+%Y-%m-%dT%H:%M:%S%z') [WARN] Another instance is running (pid=$oldpid). Exiting." >&2
+      return 1
+    fi
 
-  # اگر پروسه با اون PID هست، چک کنیم واقعاً run.sh/openconnect خودمونه یا نه
-  elif [ -n "${oldpid:-}" ] && [ -d "/proc/$oldpid" ]; then
-    cmd="$(tr '\0' ' ' < "/proc/$oldpid/cmdline" 2>/dev/null || true)"
+    echo "$(date '+%Y-%m-%dT%H:%M:%S%z') [WARN] Stale lock detected (pid=$oldpid). Removing lock." >&2
+    rm -rf "$LOCKDIR" 2>/dev/null || true
+    sleep 0.2
+  done
 
-    case "$cmd" in
-      *run.sh*|*openconnect*)
-        echo "$(ts) [WARN]  Another instance is running (pid=$oldpid). Staying idle." >&2
-        while true; do sleep 3600; done
-        ;;
-      *)
-        echo "$(ts) [WARN]  Stale lock belongs to unrelated pid=$oldpid ($cmd). Removing lock." >&2
-        rm -f "$LOCKFILE" 2>/dev/null || true
-        ;;
-    esac
-  else
-    # PID وجود ندارد → stale lock
-    rm -f "$LOCKFILE" 2>/dev/null || true
-  fi
+  echo "$(date '+%Y-%m-%dT%H:%M:%S%z') [ERROR] Could not acquire lock." >&2
+  return 1
+}
+
+acquire_lock || exit 0
+trap 'rm -rf "$LOCKDIR" 2>/dev/null || true' EXIT INT TERM HUP QUIT
+
+RUNSH_DEPTH="${RUNSH_DEPTH:-0}"
+if [ "$RUNSH_DEPTH" != "0" ]; then
+  echo "$(date '+%Y-%m-%dT%H:%M:%S%z') [WARN] Recursive run.sh invocation detected. Exiting." >&2
+  exit 0
 fi
-
-echo "$$" > "$LOCKFILE" 2>/dev/null || true
-trap 'rm -f "$LOCKFILE" 2>/dev/null || true' EXIT INT TERM HUP QUIT
+export RUNSH_DEPTH=1
 
 # ---------- required env ----------
 SERVER="${ANYCONNECT_SERVER:-}"
