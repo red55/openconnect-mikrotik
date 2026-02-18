@@ -31,12 +31,12 @@ This project provides a robust `run.sh` entrypoint that connects to an AnyConnec
 | `ANYCONNECT_USER` | Username |
 | `ANYCONNECT_PASSWORD` | Password |
 | `ANYCONNECT_CERT` | Certificate pin (`pin-sha256:...`, `sha256:...`, `sha1:...`). If you provide a raw pin, it is treated as `pin-sha256:<value>`. |
+| `ANYCONNECT_LAN_CIDRS` | *(empty)* | Space-separated LAN CIDRs to add return routes for (e.g. `"192.168.12.0/24 192.168.88.0/24"`). |
 
 ### Optional
 
 | Variable | Default | Description |
 |---|---:|---|
-| `ANYCONNECT_LAN_CIDRS` | *(empty)* | Space-separated LAN CIDRs to add return routes for (e.g. `"192.168.12.0/24 192.168.88.0/24"`). |
 | `LAN_CIDRS` | *(fallback)* | Alternative name for LAN CIDRs (same format). |
 | `VPN_IF` | `tun127` | TUN device name. |
 | `NO_DTLS` | `1` | Disable DTLS (UDP). |
@@ -129,11 +129,8 @@ ENTRYPOINT ["/sbin/tini","--","/opt/openconnect/run.sh"]
 ### GitHub Actions (Build & Push to Docker Hub)
 
 1. Create a Docker Hub access token
-
 2. Add GitHub secrets:
-
 - ```DOCKERHUB_USERNAME```
-
 - ```DOCKERHUB_TOKEN```
 
 Create ```.github/workflows/docker.yml```:
@@ -229,7 +226,5 @@ Huge thanks to the original author for publishing the base implementation.
 ### Security Notes
 
 Don’t hardcode passwords into the image.
-
 Keep container logs private (especially with ```OC_VERBOSE=1```).
-
 Prefer certificate pinning (```ANYCONNECT_CERT```) for server identity verification.
