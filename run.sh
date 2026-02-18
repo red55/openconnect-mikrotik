@@ -25,42 +25,56 @@ dbg() { [ "$LOG_LEVEL" = "debug" ] && echo "$(ts) [DEBUG] $*" >&2 || true; }
 warn(){ echo "$(ts) [WARN]  $*" >&2; }
 err() { echo "$(ts) [ERROR] $*" >&2; }
 
-# ---------- atomic lock (no recursion, stale-safe) ----------
-LOCKDIR="/tmp/ocvpn.lock.d"
-LOCKPID="$LOCKDIR/pid"
+# ---------- robust lock (PID + starttime, stale-safe) ----------
+LOCKROOT="/run"
+touch "$LOCKROOT/.w" 2>/dev/null && rm -f "$LOCKROOT/.w" 2>/dev/null || LOCKROOT="/tmp"
+
+LOCKDIR="$LOCKROOT/ocvpn.lock.d"
+PIDFILE="$LOCKDIR/pid"
+STARTFILE="$LOCKDIR/start"
+
+pstart() { awk '{print $22}' "/proc/$1/stat" 2>/dev/null || echo ""; }
 
 acquire_lock() {
-  # try a few times in case of race during startup
-  for _ in 1 2 3; do
+  for _ in 1 2 3 4 5; do
     if mkdir "$LOCKDIR" 2>/dev/null; then
-      echo "$$" > "$LOCKPID" 2>/dev/null || true
+      echo "$$" > "$PIDFILE" 2>/dev/null || true
+      pstart "$$" > "$STARTFILE" 2>/dev/null || true
       return 0
     fi
 
-    oldpid="$(cat "$LOCKPID" 2>/dev/null || true)"
-    if [ -n "${oldpid:-}" ] && [ -d "/proc/$oldpid" ]; then
-      echo "$(date '+%Y-%m-%dT%H:%M:%S%z') [WARN] Another instance is running (pid=$oldpid). Exiting." >&2
-      return 1
+    oldpid="$(cat "$PIDFILE" 2>/dev/null || true)"
+    oldst="$(cat "$STARTFILE" 2>/dev/null || true)"
+
+    # no pid recorded -> stale
+    if [ -z "${oldpid:-}" ]; then
+      rm -rf "$LOCKDIR" 2>/dev/null || true
+      continue
     fi
 
-    echo "$(date '+%Y-%m-%dT%H:%M:%S%z') [WARN] Stale lock detected (pid=$oldpid). Removing lock." >&2
-    rm -rf "$LOCKDIR" 2>/dev/null || true
-    sleep 0.2
+    # pid doesn't exist -> stale
+    if [ ! -d "/proc/$oldpid" ]; then
+      rm -rf "$LOCKDIR" 2>/dev/null || true
+      continue
+    fi
+
+    # pid exists but starttime differs -> pid reused -> stale
+    curst="$(pstart "$oldpid")"
+    if [ -n "${oldst:-}" ] && [ -n "${curst:-}" ] && [ "$curst" != "$oldst" ]; then
+      rm -rf "$LOCKDIR" 2>/dev/null || true
+      continue
+    fi
+
+    echo "$(ts) [WARN] Another instance is running (pid=$oldpid). Exiting." >&2
+    return 1
   done
 
-  echo "$(date '+%Y-%m-%dT%H:%M:%S%z') [ERROR] Could not acquire lock." >&2
+  echo "$(ts) [ERROR] Could not acquire lock." >&2
   return 1
 }
 
 acquire_lock || exit 0
 trap 'rm -rf "$LOCKDIR" 2>/dev/null || true' EXIT INT TERM HUP QUIT
-
-RUNSH_DEPTH="${RUNSH_DEPTH:-0}"
-if [ "$RUNSH_DEPTH" != "0" ]; then
-  echo "$(date '+%Y-%m-%dT%H:%M:%S%z') [WARN] Recursive run.sh invocation detected. Exiting." >&2
-  exit 0
-fi
-export RUNSH_DEPTH=1
 
 # ---------- required env ----------
 SERVER="${ANYCONNECT_SERVER:-}"
