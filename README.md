@@ -31,7 +31,7 @@ This project provides a robust `run.sh` entrypoint that connects to an AnyConnec
 | `ANYCONNECT_USER` | Username |
 | `ANYCONNECT_PASSWORD` | Password |
 | `ANYCONNECT_CERT` | Certificate pin (`pin-sha256:...`, `sha256:...`, `sha1:...`). If you provide a raw pin, it is treated as `pin-sha256:<value>`. |
-| `ANYCONNECT_LAN_CIDRS` | *(empty)* | Space-separated LAN CIDRs to add return routes for (e.g. `"192.168.12.0/24 192.168.88.0/24"`). |
+| `ANYCONNECT_LAN_CIDRS` | Space-separated LAN CIDRs to add return routes for (e.g. `"192.168.1.0/24 192.168.88.0/24"`). |
 
 ### Optional
 
