@@ -25,18 +25,37 @@ dbg() { [ "$LOG_LEVEL" = "debug" ] && echo "$(ts) [DEBUG] $*" >&2 || true; }
 warn(){ echo "$(ts) [WARN]  $*" >&2; }
 err() { echo "$(ts) [ERROR] $*" >&2; }
 
-# ---------- PID lock (stale-safe) ----------
+# ---------- PID lock (stale-safe + handles PID reuse like pid=2) ----------
 LOCKFILE="/tmp/ocvpn.lock"
+
 if [ -f "$LOCKFILE" ]; then
   oldpid="$(cat "$LOCKFILE" 2>/dev/null || true)"
-  if [ -n "${oldpid:-}" ] && [ -d "/proc/$oldpid" ]; then
-    warn "Another instance is running (pid=$oldpid). Staying idle."
-    while true; do sleep 3600; done
+
+  # اگر PID قبلی دقیقاً PID همین اجراست (PID reuse بعد از restart)، لاک stale حساب میشه
+  if [ -n "${oldpid:-}" ] && [ "$oldpid" = "$$" ]; then
+    echo "$(ts) [WARN]  Lock pid equals current pid ($$). Removing stale lock." >&2
+    rm -f "$LOCKFILE" 2>/dev/null || true
+
+  # اگر پروسه با اون PID هست، چک کنیم واقعاً run.sh/openconnect خودمونه یا نه
+  elif [ -n "${oldpid:-}" ] && [ -d "/proc/$oldpid" ]; then
+    cmd="$(tr '\0' ' ' < "/proc/$oldpid/cmdline" 2>/dev/null || true)"
+
+    case "$cmd" in
+      *run.sh*|*openconnect*)
+        echo "$(ts) [WARN]  Another instance is running (pid=$oldpid). Staying idle." >&2
+        while true; do sleep 3600; done
+        ;;
+      *)
+        echo "$(ts) [WARN]  Stale lock belongs to unrelated pid=$oldpid ($cmd). Removing lock." >&2
+        rm -f "$LOCKFILE" 2>/dev/null || true
+        ;;
+    esac
   else
-    warn "Stale lock detected (pid=$oldpid). Removing lock."
+    # PID وجود ندارد → stale lock
     rm -f "$LOCKFILE" 2>/dev/null || true
   fi
 fi
+
 echo "$$" > "$LOCKFILE" 2>/dev/null || true
 trap 'rm -f "$LOCKFILE" 2>/dev/null || true' EXIT INT TERM HUP QUIT
 
