@@ -77,24 +77,22 @@ docker buildx build \
   --push .
 ```
 
-MikroTik devices are often linux/arm64 (aarch64). If you only need MikroTik, you can build just linux/arm64.
+MikroTik devices are often ```linux/arm64``` (aarch64). If you only need MikroTik, you can build just ```linux/arm64```.
 
 ### 2) Configure MikroTik container (concept)
 
 You typically need:
 
-- Run as root inside container: user=0:0
-- Allow TUN device: devices=/dev/net/tun
-- Enable logs: logging=yes
+- Enable logs: ```logging=yes```
 - Ensure the container subnet has internet access (usually NAT/masquerade on RouterOS)
 
 Also make sure your container environment variables are set:
 
-- ANYCONNECT_SERVER
-- ANYCONNECT_USER
-- ANYCONNECT_PASSWORD
-- ANYCONNECT_CERT
-- ANYCONNECT_LAN_CIDRS
+- ```ANYCONNECT_SERVER```
+- ```ANYCONNECT_USER```
+- ```ANYCONNECT_PASSWORD```
+- ```ANYCONNECT_CERT```
+- ```ANYCONNECT_LAN_CIDRS```
 
 ### MikroTik RouterOS Notes
 
@@ -108,7 +106,7 @@ Goal: Only route selected clients/subnets via the VPN container, not all traffic
 
 General steps on MikroTik:
 
-1. Container gets an IP on a container subnet (e.g. 192.168.21.0/24).
+1. Container gets an IP on a container subnet (e.g. ```192.168.21.0/24```).
 2. Create a routing table that uses the container IP as a gateway.
 3. Use mangle rules to mark traffic for specific clients/subnets and route them via that table.
 
@@ -134,11 +132,11 @@ ENTRYPOINT ["/sbin/tini","--","/opt/openconnect/run.sh"]
 
 2. Add GitHub secrets:
 
-- DOCKERHUB_USERNAME
+- ```DOCKERHUB_USERNAME```
 
-- DOCKERHUB_TOKEN
+- ```DOCKERHUB_TOKEN```
 
-Create .github/workflows/docker.yml:
+Create ```.github/workflows/docker.yml```:
 ```
 name: Build & Push Docker image
 
@@ -186,51 +184,52 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
 ```
 
-Troubleshooting
-Container exits quickly / no logs
+## Troubleshooting
+### Container exits quickly / no logs
 
 Enable container logging on MikroTik (logging=yes) and check RouterOS logs.
-
-TUNSETIFF: Resource busy
-
+```
+TUNSETIFF: Resource busy 
+```
 A previous tunnel device exists or another OpenConnect instance is running.
-This project includes cleanup logic to remove an existing tun127 before reconnect.
-
+This project includes cleanup logic to remove an existing ``` tun127 ``` before reconnect.
+```
 attempt-reconnect / vpnc-script returned error
-
-Some scripts don’t recognize the attempt-reconnect reason.
-This project wraps vpnc-script to normalize that reason.
-
+```
+Some scripts don’t recognize the ```attempt-reconnect``` reason.
+This project wraps ```vpnc-script``` to normalize that reason.
+```
 unable to get local issuer certificate
-
+```
 Your VPN server may use a private CA chain.
 Pinning via ANYCONNECT_CERT is recommended. To remove this warning, install your organization CA into the container trust store.
-
+```
 Failed to open /dev/vhost-net
-
+```
 Usually harmless in container environments (no acceleration device).
 
-Credits / Acknowledgements
+### Credits / Acknowledgements
 
 This project is inspired by and builds upon the original concept from:
 
-https://github.com/degritsenko/openconnect-mikrotik
+- https://github.com/degritsenko/openconnect-mikrotik
 
 The original repository provided a solid base for running OpenConnect on MikroTik RouterOS containers.
 This variant focuses on a more “hands-off” operational setup for daily use (gateway + routing + resiliency + logging).
 
 Huge thanks to the original author for publishing the base implementation.
 
-Project Layout
+### Project Layout
+```
 .
 ├─ Dockerfile
 ├─ run.sh
 └─ README.md
-
-Security Notes
+```
+### Security Notes
 
 Don’t hardcode passwords into the image.
 
-Keep container logs private (especially with OC_VERBOSE=1).
+Keep container logs private (especially with ```OC_VERBOSE=1```).
 
-Prefer certificate pinning (ANYCONNECT_CERT) for server identity verification.
+Prefer certificate pinning (```ANYCONNECT_CERT```) for server identity verification.
