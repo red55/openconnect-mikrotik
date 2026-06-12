@@ -157,6 +157,9 @@ ensure__routes() {
 }
 ensure_dns_routes() {
   gw="$1"; lan_if="$2"
+  [ "$SKIP_DNS_ROUTES" = "0" ] || return 0
+
+  echo "Ensuring DNS routes via $gw dev $lan_if"
   for ns in $(awk '/^nameserver/{print $2}' /etc/resolv.conf 2>/dev/null || true); do
     echo "$ns" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$' || continue
     ip route replace "$ns/32" via "$gw" dev "$lan_if" 2>/dev/null || true
@@ -293,7 +296,7 @@ while true; do
   [ -n "${LAN_CIDRS:-}" ] && dbg "LAN_CIDRS=$LAN_CIDRS" || dbg "LAN_CIDRS empty"
 
   ensure_sysctl
-  [ "$SKIP_DNS_ROUTES" = "0" ] && ensure_dns_routes "$gw" "$lan_if"
+  ensure_dns_routes "$gw" "$lan_if"
   ensure_lan_routes "$gw" "$lan_if"
   ensure_server_route "$gw" "$lan_if" "$vpn_ip"
   ensure_iptables "$lan_if"
