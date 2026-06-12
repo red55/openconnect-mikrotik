@@ -93,7 +93,8 @@ SKIP_INSTALL="${SKIP_INSTALL:-0}"
 LAN_CIDRS="${LAN_CIDRS:-${ANYCONNECT_LAN_CIDRS:-}}"
 
 need_env() {
-  [ -n "$SERVER" ] && [ -n "$USER" ] && [ -n "$PASS" ] && [ -n "$CERT" ] && [ -n "$LAN_CIDRS" ]
+  [ -n "$SERVER" ] && [ -n "$USER" ] && [ -n "$PASS" ] #&& [ -n "$LAN_CIDRS" ]
+
 }
 
 servercert_arg() {
@@ -262,7 +263,7 @@ while true; do
   LAN_CIDRS="${LAN_CIDRS:-${ANYCONNECT_LAN_CIDRS:-$LAN_CIDRS}}"
 
   if ! need_env; then
-    err "Missing envs. Need ANYCONNECT_SERVER/USER/PASSWORD/CERT. Sleeping..."
+    err "Missing envs. Need ANYCONNECT_SERVER/USER/PASSWORD. Sleeping..."
     sleep 5
     continue
   fi
