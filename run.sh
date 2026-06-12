@@ -293,7 +293,6 @@ while true; do
 
   cleanup_tun
 
-  sc="$(servercert_arg)"
   vpnc_script="$(make_vpnc_wrapper)"
 
   extra=""
@@ -301,6 +300,7 @@ while true; do
   [ "$DISABLE_IPV6" = "1" ] && extra="$extra --disable-ipv6"
   [ -n "$MTU" ] && extra="$extra --mtu $MTU"
   [ "$OC_VERBOSE" = "1" ] && extra="$extra -v"
+  [ -n "$CERT" ] && extra="$extra --servercert $(servercert_arg)"
 
   log "Connecting: server=$SERVER ($vpn_ip) lan_if=$lan_if gw=$gw vpn_if=$VPN_IF"
   print_state
@@ -310,7 +310,6 @@ while true; do
       --resolve="$SERVER:$vpn_ip" \
       --user="$USER" --passwd-on-stdin \
       -i "$VPN_IF" \
-      --servercert "$sc" \
       --script "$vpnc_script" \
       "$SERVER"
   ) &
