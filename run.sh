@@ -232,7 +232,7 @@ ensure_deps() {
   if command -v apk >/dev/null 2>&1; then
     log "apk update"
     apk update || return 1
-    log "apk add iproute2 iptables ca-certificates bind-tools vpnc"
+    log "apk add iproute2 iptables ca-certificates bind-tools vpnc curl"
     apk add --no-cache iproute2 iptables ca-certificates bind-tools vpnc || return 1
     update-ca-certificates >/dev/null 2>&1 || true
     return 0
