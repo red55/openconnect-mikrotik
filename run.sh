@@ -148,6 +148,13 @@ ensure_sysctl() {
   sysctl -w net.ipv4.ip_forward=1 >/dev/null 2>&1 || true
 }
 
+ensure__routes() {
+  gw="$1"; iface="$2"; routes="$3"
+  [ -n "${routes:-}" ] || return 0
+  for c in $routes; do
+    ip route replace "$c" via "$gw" dev "$iface" 2>/dev/null || true
+  done
+}
 ensure_dns_routes() {
   gw="$1"; lan_if="$2"
   for ns in $(awk '/^nameserver/{print $2}' /etc/resolv.conf 2>/dev/null || true); do
@@ -158,11 +165,9 @@ ensure_dns_routes() {
 
 ensure_lan_routes() {
   gw="$1"; lan_if="$2"
-  [ -n "${LAN_CIDRS:-}" ] || return 0
-  for c in $LAN_CIDRS; do
-    ip route replace "$c" via "$gw" dev "$lan_if" 2>/dev/null || true
-  done
+  ensure__routes "$gw" "$lan_if" "$LAN_CIDRS"
 }
+
 
 ensure_server_route() {
   gw="$1"; lan_if="$2"; vpn_ip="$3"
