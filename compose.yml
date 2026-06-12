@@ -1,0 +1,17 @@
+services:
+  openconnect:
+    build:
+      context: .
+      tags:
+        - docker.io/red55/openconnect-mikrotik:latest
+    tty: true
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun
+    environment:
+      - ANYCONNECT_SERVER=v.pki.ingacademy.ru
+      - ANYCONNECT_USER=lsk
+      - ANYCONNECT_PASSWORD=123456
+      - OC_VERBOSE=1 # Optional: Enable verbose output for debugging
+      - NO_DTLS=0 # Optional: Disable DTLS if you encounter connection issues
