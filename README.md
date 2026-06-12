@@ -47,6 +47,7 @@ This project provides a robust `run.sh` entrypoint that connects to an AnyConnec
 | `OC_VERBOSE` | `0` | Set to `1` for `openconnect -v` verbosity. |
 | `PRINT_STATE` | `0` | Set to `1` to print routing/iptables state periodically. |
 | `SKIP_INSTALL` | `0` | Set to `1` to skip installing packages (only if your image already includes deps). |
+| `SKIP_DNS_ROUTES` | `0` | Set to `1` to skip installing routes to DNS servers via veth interface. Usefull when VPN server send private DNS servers which are accessible via VPN itself only. |
 
 ---
 
@@ -186,7 +187,7 @@ jobs:
 
 Enable container logging on MikroTik (logging=yes) and check RouterOS logs.
 ```
-TUNSETIFF: Resource busy 
+TUNSETIFF: Resource busy
 ```
 A previous tunnel device exists or another OpenConnect instance is running.
 This project includes cleanup logic to remove an existing ``` tun127 ``` before reconnect.

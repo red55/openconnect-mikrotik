@@ -89,6 +89,7 @@ DISABLE_IPV6="${DISABLE_IPV6:-1}"
 MTU="${MTU:-1300}"
 REFRESH_SEC="${REFRESH_SEC:-30}"
 SKIP_INSTALL="${SKIP_INSTALL:-0}"
+SKIP_DNS_ROUTES="${SKIP_DNS_ROUTES:-0}"
 
 LAN_CIDRS="${LAN_CIDRS:-${ANYCONNECT_LAN_CIDRS:-}}"
 
@@ -287,7 +288,7 @@ while true; do
   [ -n "${LAN_CIDRS:-}" ] && dbg "LAN_CIDRS=$LAN_CIDRS" || dbg "LAN_CIDRS empty"
 
   ensure_sysctl
-  ensure_dns_routes "$gw" "$lan_if"
+  [ "$SKIP_DNS_ROUTES" = "0" ] && ensure_dns_routes "$gw" "$lan_if"
   ensure_lan_routes "$gw" "$lan_if"
   ensure_server_route "$gw" "$lan_if" "$vpn_ip"
   ensure_iptables "$lan_if"
