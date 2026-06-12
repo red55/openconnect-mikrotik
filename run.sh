@@ -303,7 +303,7 @@ while true; do
   [ "$OC_VERBOSE" = "1" ] && extra="$extra -v"
   [ -n "$CERT" ] && extra="$extra --servercert $(servercert_arg)"
 
-  log "Connecting: server=$SERVER ($vpn_ip) lan_if=$lan_if gw=$gw vpn_if=$VPN_IF"
+  log "Connecting: server=$SERVER ($vpn_ip) lan_if=$lan_if gw=$gw vpn_if=$VPN_IF extra='$extra'"
   print_state
 
   # Do NOT leak password; run openconnect without xtrace
