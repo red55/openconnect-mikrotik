@@ -1,7 +1,6 @@
 FROM alpine:latest
 
 ENV SKIP_INSTALL=1
-
 RUN --mount=type=cache,target=/var/cache/apk/ apk add \
     openconnect iproute2 iptables ca-certificates bind-tools vpnc curl tini
 
